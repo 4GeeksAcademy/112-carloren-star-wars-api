@@ -39,7 +39,7 @@ class Characters(db.Model):
     birth_year: Mapped[str] = mapped_column(String(120))
     gender: Mapped[str] = mapped_column(String(120))
     homeworld: Mapped[int] = mapped_column(ForeignKey("planets.id"))
-    favorite: Mapped[int] = mapped_column(ForeignKey("favorites.id"), nullable=True) 
+    favorite: Mapped[int] = mapped_column(ForeignKey("favorites.id")) 
 
     def serialize(self):
         return {
