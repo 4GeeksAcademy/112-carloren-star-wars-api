@@ -66,7 +66,7 @@ class Planets(db.Model):
     surface_water: Mapped[int] = mapped_column(Integer())
     population: Mapped[int] = mapped_column(Integer())
     was_born: Mapped[List["Characters"]] = relationship()
-    favorite: Mapped[int] = mapped_column(ForeignKey("favorites.id"), nullable=True)
+    favorite: Mapped[int] = mapped_column(ForeignKey("favorites.id"))
 
     def serialize(self):
         return {
