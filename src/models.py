@@ -85,9 +85,9 @@ class Planets(db.Model):
 class Favorites(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
-    user: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user: Mapped[List["User"]] = relationship()
     character: Mapped[List["Characters"]] = relationship()
-    planet: Mapped[List["Characters"]] = relationship()
+    planet: Mapped[List["Planets"]] = relationship()
 
     def serialize(self):
         return {
