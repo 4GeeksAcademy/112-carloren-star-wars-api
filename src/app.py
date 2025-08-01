@@ -42,16 +42,26 @@ def sitemap():
     return generate_sitemap(app)
 
 
-@app.route("/user", methods=["GET"])
-def get_all_users():
+@app.route("/user/favorites/<int:user_id>", methods=["GET"])
+def get_all_favorites(user_id):
 
-    # ↓↓↓ Consultar todos los registros de una tabla, modelo o entidad
-    all_users = db.session.execute(select(User)).scalars().all()
-    # ↓↓↓ Se encarga de procesar la info en un formato legible para devs
-    results = list(map(lambda item: item.serialize(), all_users))
+    print(user_id)
 
-    if results is None:
-        return jsonify({"msg": "No hay usuarios"}), 404
+    # ↓↓↓ Con esta consultamos los favoritos del usuario
+    # query_user = db.session.execute(
+    #     select(User).where(User.id == user_id)
+    # ).scalar_one_or_none()
+
+    
+    query_results = (
+        db.session.execute(select(Favorites).where(Favorites.user_id == user_id))
+        .scalars()
+        .all()
+    )
+
+    results = list(map(lambda item: item.serialize(), query_results))
+
+    print(results)
 
     response_body = {"msg": "ok", "results": results}
 
