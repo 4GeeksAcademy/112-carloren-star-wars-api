@@ -17,9 +17,7 @@ app.url_map.strict_slashes = False
 
 db_url = os.getenv("DATABASE_URL")
 if db_url is not None:
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url.replace(
-        "postgres://", "postgresql://"
-    )
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url.replace("postgres://", "postgresql://")
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/test.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -42,7 +40,36 @@ def sitemap():
     return generate_sitemap(app)
 
 
-@app.route("/user/favorites/<int:user_id>", methods=["GET"])
+@app.route("/user", methods=["GET"])
+def get_all_users():
+
+    # ↓↓↓ Consultar todos los registros de una tabla, modelo o entidad
+    all_users = db.session.execute(select(User)).scalars().all()
+    # ↓↓↓ Se encarga de procesar la info en un formato legible para devs
+    results = list(map(lambda item: item.serialize(), all_users))
+
+    if results is None:
+        return jsonify({"msg": "No hay usuarios"}), 404
+
+    response_body = {"msg": "ok", "results": results}
+
+    return jsonify(response_body), 200
+
+
+@app.route("/user/<int:user_id>", methods=["GET"])
+def get_one_user(user_id):
+
+    user = db.session.get(User, user_id)
+
+    if user is None:
+        return jsonify({"msg": "El usuario no existe"}), 404
+
+    response_body = {"msg": "ok", "result": user.serialize()}
+
+    return jsonify(response_body), 200
+
+
+@app.route("/user/<int:user_id>/favorites", methods=["GET"])
 def get_all_favorites(user_id):
 
     print(user_id)
@@ -52,12 +79,7 @@ def get_all_favorites(user_id):
     #     select(User).where(User.id == user_id)
     # ).scalar_one_or_none()
 
-    
-    query_results = (
-        db.session.execute(select(Favorites).where(Favorites.user_id == user_id))
-        .scalars()
-        .all()
-    )
+    query_results = db.session.execute(select(Favorites).where(Favorites.user_id == user_id)).scalars().all()
 
     results = list(map(lambda item: item.serialize(), query_results))
 
@@ -80,6 +102,38 @@ def get_all_people():
         return jsonify({"msg": "No hay personajes"}), 404
 
     response_body = {"msg": "ok", "results": results}
+
+    return jsonify(response_body), 200
+
+
+@app.route("/people", methods=["POST"])
+
+# person = Person(username = <username_value>, email = <email_value>)
+# db.session.add(person)
+# db.session.commit()
+
+
+def post_one_character():
+    request_body = request.json
+
+    character = Characters(
+        name=request_body["name"],
+        height=request_body["height"],
+        mass=request_body["mass"],
+        hair_color=request_body["hair_color"],
+        skin_color=request_body["skin_color"],
+        eye_color=request_body["eye_color"],
+        birth_year=request_body["birth_year"],
+        gender=request_body["gender"],
+        homeworld=request_body["homeworld"],
+    )
+
+    print(character.serialize())
+
+    db.session.add(character)
+    db.session.commit()
+
+    response_body = {"msg": "personaje agregado", "results": character.serialize()}
 
     return jsonify(response_body), 200
 

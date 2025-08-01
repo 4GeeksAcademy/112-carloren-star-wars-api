@@ -7,7 +7,7 @@ db = SQLAlchemy()
 
 
 class User(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(120), unique=True)
     name: Mapped[str] = mapped_column(String(120))
     surname: Mapped[str] = mapped_column(String(120))
@@ -41,7 +41,7 @@ class User(db.Model):
 
 
 class Characters(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(120))
     height: Mapped[int] = mapped_column(Integer())
     mass: Mapped[int] = mapped_column(Integer())
@@ -69,7 +69,7 @@ class Characters(db.Model):
 
 
 class Planets(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(120))
     rotation_period: Mapped[int] = mapped_column(Integer())
     orbital_period: Mapped[int] = mapped_column(Integer())
@@ -97,7 +97,7 @@ class Planets(db.Model):
 
 
 class Favorites(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
     characters_id: Mapped[int] = mapped_column(ForeignKey("characters.id"), nullable=True)
     planets_id: Mapped[int] = mapped_column(ForeignKey("planets.id"), nullable=True)
