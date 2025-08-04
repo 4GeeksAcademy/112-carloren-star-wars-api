@@ -12,8 +12,17 @@ from admin import setup_admin
 from models import db, User, Characters, Planets, Favorites
 from sqlalchemy import select
 
+
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
+
+
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+
+
+# Setup the Flask-JWT-Extended extension
+app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
+jwt = JWTManager(app)
 
 db_url = os.getenv("DATABASE_URL")
 if db_url is not None:
@@ -38,6 +47,30 @@ def handle_invalid_usage(error):
 @app.route("/")
 def sitemap():
     return generate_sitemap(app)
+
+
+# Create a route to authenticate your users and return JWTs. The
+# create_access_token() function is used to actually generate the JWT.
+@app.route("/login", methods=["POST"])
+def login():
+    email = request.json.get("email", None)
+    password = request.json.get("password", None)
+    print("email: " + email, "Password: " + password)
+
+    # ------consulta en la tabla "User" ↓↓ donde el "email" ↓↓ coincida con el introducido
+    query_user = db.session.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    print(query_user)
+    # si devuelve "None", es porque no encuentra dicho usuario, entonces podemos tratar el error.
+
+    if query_user is None:
+        return jsonify({"msg": "email does not exist"}), 404
+
+    # --- si el "email" ↓↓ o el "password" ↓↓ no coincide con la bd, lanza el error
+    if email != query_user.email or password != query_user.password:
+        return jsonify({"msg": "Bad email or password"}), 401
+
+    access_token = create_access_token(identity=email)
+    return jsonify(access_token=access_token)
 
 
 @app.route("/user", methods=["GET"])
@@ -178,6 +211,25 @@ def get_one_planet(id):
     response_body = {"msg": "ok", "result": planet.serialize()}
 
     return jsonify(response_body), 200
+
+
+# Protect a route with jwt_required, which will kick out requests
+# without a valid JWT present.
+@app.route("/favorites", methods=["GET"])
+@jwt_required()  # ← esto se llama "decorador", se coloca entre la ruta y la función, y es como el "segurata"
+def protected():
+    # Access the identity of the current user with get_jwt_identity
+    email = get_jwt_identity()
+    print(email)
+
+    query_user = db.session.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    print(query_user.serialize())
+
+    # Después, podemos traer los favoritos del usuario:
+    user_favorites = query_user.all_user_favorites()
+    print(user_favorites)
+
+    return jsonify(logged_in_as=email, favorites=user_favorites), 200
 
 
 # this only runs if `$ python src/app.py` is executed
