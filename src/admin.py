@@ -13,9 +13,12 @@ def setup_admin(app):
         column_list = {"id", "user_id", "characters_id", "planets_id"}
         form_columns = {"user_id", "characters_id", "planets_id"}
 
+    class CharacterView(ModelView):
+        form_columns = {"id", "name", "height", "mass", "hair_color", "skin_color", "eye_color", "birth_year", "gender", "homeworld"}
+
     # Add your models here, for example this is how we add a the User model to the admin
     admin.add_view(ModelView(User, db.session))
-    admin.add_view(ModelView(Characters, db.session))
+    admin.add_view(CharacterView(Characters, db.session))
     admin.add_view(ModelView(Planets, db.session))
     admin.add_view(FavoriteView(Favorites, db.session))
 

@@ -16,9 +16,7 @@ class User(db.Model):
     password: Mapped[str] = mapped_column(nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
 
-    favorites: Mapped[List["Favorites"]] = relationship(
-        "Favorites", back_populates="user", cascade=("all, delete-orphan")
-    )
+    favorites: Mapped[List["Favorites"]] = relationship("Favorites", back_populates="user", cascade=("all, delete-orphan"))
 
     def serialize(self):
         return {
@@ -65,6 +63,13 @@ class Characters(db.Model):
             "eye_color": self.eye_color,
             "birth_year": self.birth_year,
             "gender": self.gender,
+            "homeworld": self.homeworld,
+        }
+
+    def id_and_name(self):
+        return {
+            "id": self.id,
+            "name": self.name,
         }
 
 
@@ -93,6 +98,7 @@ class Planets(db.Model):
             "terrain": self.terrain,
             "surface_water": self.surface_water,
             "population": self.population,
+            "was_born": list(map(lambda item: item.id_and_name(), self.was_born)),
         }
 
 

@@ -102,25 +102,19 @@ def get_one_user(user_id):
     return jsonify(response_body), 200
 
 
-@app.route("/user/<int:user_id>/favorites", methods=["GET"])
-def get_all_favorites(user_id):
+@app.route("/favorites", methods=["GET"])
+@jwt_required()
+def protected():
+    email = get_jwt_identity()
+    print(email)
 
-    print(user_id)
+    query_user = db.session.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    print(query_user.serialize())
 
-    # ↓↓↓ Con esta consultamos los favoritos del usuario
-    # query_user = db.session.execute(
-    #     select(User).where(User.id == user_id)
-    # ).scalar_one_or_none()
+    user_favorites = query_user.all_user_favorites()
+    print(user_favorites)
 
-    query_results = db.session.execute(select(Favorites).where(Favorites.user_id == user_id)).scalars().all()
-
-    results = list(map(lambda item: item.serialize(), query_results))
-
-    print(results)
-
-    response_body = {"msg": "ok", "results": results}
-
-    return jsonify(response_body), 200
+    return jsonify(logged_in_as=email, favorites=user_favorites), 200
 
 
 @app.route("/people", methods=["GET"])
@@ -140,12 +134,6 @@ def get_all_people():
 
 
 @app.route("/people", methods=["POST"])
-
-# person = Person(username = <username_value>, email = <email_value>)
-# db.session.add(person)
-# db.session.commit()
-
-
 def post_one_character():
     request_body = request.json
 
@@ -184,6 +172,22 @@ def get_one_person(id):
     return jsonify(response_body), 200
 
 
+@app.route("/people/<int:id>", methods=["DELETE"])
+def delete_one_person(id):
+
+    person = db.session.get(Characters, id)
+
+    if person is None:
+        return jsonify({"msg": "El personaje no existe"}), 404
+
+    db.session.delete(person)
+    db.session.commit()
+
+    response_body = {"msg": "El personaje se ha eliminado"}
+
+    return jsonify(response_body), 200
+
+
 @app.route("/planets", methods=["GET"])
 def get_all_planets():
 
@@ -196,6 +200,31 @@ def get_all_planets():
         return jsonify({"msg": "No hay planetas"}), 404
 
     response_body = {"msg": "ok", "results": results}
+
+    return jsonify(response_body), 200
+
+
+@app.route("/planets", methods=["POST"])
+def post_one_planet():
+    request_body = request.json
+
+    planet = Planets(
+        name=request_body["name"],
+        rotation_period=request_body["rotation_period"],
+        orbital_period=request_body["orbital_period"],
+        diameter=request_body["diameter"],
+        climate=request_body["climate"],
+        terrain=request_body["terrain"],
+        surface_water=request_body["surface_water"],
+        population=request_body["population"],
+    )
+
+    print(planet.serialize())
+
+    db.session.add(planet)
+    db.session.commit()
+
+    response_body = {"msg": "planeta agregado", "results": planet.serialize()}
 
     return jsonify(response_body), 200
 
@@ -213,23 +242,20 @@ def get_one_planet(id):
     return jsonify(response_body), 200
 
 
-# Protect a route with jwt_required, which will kick out requests
-# without a valid JWT present.
-@app.route("/favorites", methods=["GET"])
-@jwt_required()  # ← esto se llama "decorador", se coloca entre la ruta y la función, y es como el "segurata"
-def protected():
-    # Access the identity of the current user with get_jwt_identity
-    email = get_jwt_identity()
-    print(email)
+@app.route("/planets/<int:id>", methods=["DELETE"])
+def delete_one_planet(id):
 
-    query_user = db.session.execute(select(User).where(User.email == email)).scalar_one_or_none()
-    print(query_user.serialize())
+    planet = db.session.get(Planets, id)
 
-    # Después, podemos traer los favoritos del usuario:
-    user_favorites = query_user.all_user_favorites()
-    print(user_favorites)
+    if planet is None:
+        return jsonify({"msg": "El planeta no existe"}), 404
 
-    return jsonify(logged_in_as=email, favorites=user_favorites), 200
+    db.session.delete(planet)
+    db.session.commit()
+
+    response_body = {"msg": "El planeta se ha eliminado"}
+
+    return jsonify(response_body), 200
 
 
 # this only runs if `$ python src/app.py` is executed
