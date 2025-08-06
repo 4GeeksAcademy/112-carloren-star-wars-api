@@ -70,7 +70,7 @@ def login():
         return jsonify({"msg": "Bad email or password"}), 401
 
     access_token = create_access_token(identity=email)
-    return jsonify(access_token=access_token)
+    return jsonify({"user_id": query_user.id, "user_logged": query_user.email, "access_token": access_token})
 
 
 @app.route("/user", methods=["GET"])
@@ -104,17 +104,67 @@ def get_one_user(user_id):
 
 @app.route("/favorites", methods=["GET"])
 @jwt_required()
-def protected():
+def protected_fav():
     email = get_jwt_identity()
-    print(email)
 
     query_user = db.session.execute(select(User).where(User.email == email)).scalar_one_or_none()
-    print(query_user.serialize())
 
     user_favorites = query_user.all_user_favorites()
-    print(user_favorites)
 
     return jsonify(logged_in_as=email, favorites=user_favorites), 200
+
+
+@app.route("/favorites", methods=["POST"])
+@jwt_required()
+def add_protected_fav():
+    email = get_jwt_identity()
+    request_body = request.json
+
+    query_user = db.session.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    character = db.session.execute(select(Characters).where(Characters.id == request_body.get("characters_id"))).scalar_one_or_none()
+    planet = db.session.execute(select(Planets).where(Planets.id == request_body.get("planets_id"))).scalar_one_or_none()
+
+    already_fav_character = db.session.execute(
+        select(Favorites).where(
+            Favorites.user_id == query_user.id, Favorites.characters_id != None, Favorites.characters_id == request_body.get("characters_id")
+        )
+    ).scalar_one_or_none()
+
+    already_fav_planet = db.session.execute(
+        select(Favorites).where(
+            Favorites.user_id == query_user.id, Favorites.planets_id != None, Favorites.planets_id == request_body.get("planets_id")
+        )
+    ).scalar_one_or_none()
+
+    print(already_fav_character, already_fav_planet)
+
+    if request_body.get("characters_id") is None and request_body.get("planets_id") is None:
+        return jsonify(msg="El favorito debe señalar a un personaje o planeta, no puede estar vacío"), 401
+
+    if request_body.get("characters_id") is not None and request_body.get("planets_id") is not None:
+        return jsonify(msg="El favorito debe señalar a un personaje o planeta, no puede guardar ambos"), 401
+
+    if request_body.get("characters_id") is not None and character is None:
+        return jsonify(msg="El personaje no existe"), 404
+
+    if request_body.get("planets_id") is not None and planet is None:
+        return jsonify(msg="El planeta no existe"), 404
+
+    if already_fav_character is not None:
+        return jsonify(msg="Este favorito ya existe para este usuario", favorite=already_fav_character.serialize()), 401
+
+    if already_fav_planet is not None:
+        return jsonify(msg="Este favorito ya existe para este usuario", favorite=already_fav_planet.serialize()), 401
+
+    fav = Favorites(user_id=query_user.id, characters_id=request_body.get("characters_id"), planets_id=request_body.get("planets_id"))
+
+    character = db.session.execute(select(Characters).where(Characters.id == request_body.get("characters_id"))).scalar_one_or_none()
+    print(character, planet)
+
+    db.session.add(fav)
+    db.session.commit()
+
+    return jsonify(logged_in_as=email, favorite=fav.serialize()), 200
 
 
 @app.route("/people", methods=["GET"])

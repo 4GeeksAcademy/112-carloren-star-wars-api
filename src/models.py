@@ -113,7 +113,7 @@ class Favorites(db.Model):
     planets: Mapped["Planets"] = relationship("Planets", back_populates="favorites")
 
     def serialize(self):
-        result = {"id": self.id}
+        result = {"id": self.id, "user_id": self.user_id}
         if self.characters_id and self.characters:
             result["resource_id"] = self.characters_id
             result["type"] = "character"
